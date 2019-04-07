@@ -1,0 +1,126 @@
+x-task-config: &x-task-config
+  platform: linux
+  image_resource:
+    type: docker-image
+    source:
+      repository: ci-registry:5000/ci-agent
+      insecure_registries: ["ci-registry:5000"]
+
+x-task-deploy: &x-task-deploy
+  task: deploy
+  params:
+    SSH_PRIVATE_KEY: {{ssh-private-key}}
+  config:
+    <<: *x-task-config
+    inputs:
+      - name: site
+    run:
+      path: sh
+      args:
+        - -ce
+        - |
+          echo "${SSH_PRIVATE_KEY}" > sshkey
+          chmod 700 sshkey
+
+          set -x
+
+          cd site
+          for subdomain in *; do
+            rsync -e 'ssh -o StrictHostKeyChecking=no -i ../sshkey' -avzc --delete "${subdomain}/" "concourseci@barrucadu.co.uk:/srv/http/barrucadu.co.uk/${subdomain}/"
+          done
+
+resources:
+- name: cv-git
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/barrucadu/cv.git
+
+- name: memo-git
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/barrucadu/memo.barrucadu.co.uk.git
+
+- name: www-git
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/barrucadu/barrucadu.co.uk.git
+
+jobs:
+- name: www.barrucadu.co.uk
+  serial: true
+  plan:
+    - aggregate:
+      - get: cv-git
+        trigger: true
+      - get: www-git
+        trigger: true
+
+    - task: build
+      config:
+        <<: *x-task-config
+        inputs:
+          - name: cv-git
+          - name: www-git
+        outputs:
+          - name: site
+        caches:
+          - path: .stack
+          - path: www-git/.stack-work
+        run:
+          path: sh
+          args:
+            - -cex
+            - |
+              cd cv-git
+              latexmk -pdf -xelatex cv-full.tex
+
+              cd ../www-git
+              stack --no-terminal build
+              stack --no-terminal exec hakyll build
+
+              mv _site ../site/www
+              mv ../cv-git/cv-full.pdf ../site/www/cv.pdf
+
+    - <<: *x-task-deploy
+
+- name: memo.barrucadu.co.uk
+  serial: true
+  plan:
+    - get: memo-git
+      trigger: true
+
+    - task: build
+      config:
+        <<: *x-task-config
+        inputs:
+          - name: memo-git
+        outputs:
+          - name: site
+        caches:
+          - path: .stack
+          - path: memo-git/.stack-work
+        run:
+          path: sh
+          args:
+            - -cex
+            - |
+              cd memo-git
+              stack --no-terminal build
+              stack --no-terminal exec hakyll build
+
+              mv _site ../site/memo
+
+    - <<: *x-task-deploy
+
+    - task: notify
+      params:
+        PLEROMA_PASSWORD: {{pleroma-user-memo-password}}
+      config:
+        <<: *x-task-config
+        inputs:
+          - name: memo-git
+        run:
+          path: memo-git/post-pleroma-status
