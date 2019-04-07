@@ -1,0 +1,85 @@
+x-task-config: &x-task-config
+  platform: linux
+  image_resource:
+    type: docker-image
+    source:
+      repository: ci-registry:5000/ci-agent
+      insecure_registries: ["ci-registry:5000"]
+
+x-task-deploy: &x-task-deploy
+  task: deploy
+  params:
+    SSH_PRIVATE_KEY: {{ssh-private-key}}
+  config:
+    <<: *x-task-config
+    inputs:
+      - name: site
+    run:
+      path: sh
+      args:
+        - -ce
+        - |
+
+resources:
+- name: uzbl-git
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/uzbl/uzbl.git
+
+- name: website-git
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/uzbl/uzbl-website.git
+
+jobs:
+- name: website
+  serial: true
+  plan:
+    - get: website-git
+      trigger: true
+
+    - task: build
+      params:
+        SSH_PRIVATE_KEY: {{ssh-private-key}}
+      config:
+        <<: *x-task-config
+        inputs:
+          - name: website-git
+        run:
+          path: sh
+          args:
+            - -ce
+            - |
+              echo "${SSH_PRIVATE_KEY}" > sshkey
+              chmod 700 sshkey
+
+              set -x
+
+              rsync -e 'ssh -o StrictHostKeyChecking=no -i sshkey' -avzc --delete --exclude=.git/ website-git/ concourseci@barrucadu.co.uk:/srv/http/uzbl.org/www/
+
+- name: docs
+  serial: true
+  plan:
+    - get: uzbl-git
+      trigger: true
+
+    - task: build
+      params:
+        SSH_PRIVATE_KEY: {{ssh-private-key}}
+      config:
+        <<: *x-task-config
+        inputs:
+          - name: uzbl-git
+        run:
+          path: sh
+          args:
+            - -ce
+            - |
+              echo "${SSH_PRIVATE_KEY}" > sshkey
+              chmod 700 sshkey
+
+              set -x
+
+              rsync -e 'ssh -o StrictHostKeyChecking=no -i sshkey' -avzc --delete --exclude=.git/ uzbl-git/ concourseci@barrucadu.co.uk:/srv/http/uzbl.org/uzbl/
