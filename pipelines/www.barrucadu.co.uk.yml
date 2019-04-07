@@ -1,0 +1,90 @@
+resources:
+- name: cv-git
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/barrucadu/cv.git
+
+- name: www-git
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/barrucadu/barrucadu.co.uk.git
+
+default_task_config: &DEFAULT_TASK_CONFIG
+  platform: linux
+  image_resource:
+    type: docker-image
+    source:
+      repository: ci-registry:5000/ci-agent
+      insecure_registries: ["ci-registry:5000"]
+
+jobs:
+- name: www.barrucadu.co.uk
+  serial: true
+  plan:
+    - aggregate:
+      - get: cv-git
+        trigger: true
+      - get: www-git
+        trigger: true
+
+    - aggregate:
+      - task: build-cv
+        config:
+          <<: *DEFAULT_TASK_CONFIG
+          inputs:
+            - name: cv-git
+          outputs:
+            - name: cv
+              path: cv-git/_cv
+          run:
+            path: sh
+            args:
+              - -cex
+              - |
+                cd cv-git
+
+                latexmk -pdf -xelatex cv-full.tex
+                cp cv-full.pdf _cv/cv.pdf
+      - task: build-website
+        config:
+          <<: *DEFAULT_TASK_CONFIG
+          inputs:
+            - name: www-git
+          outputs:
+            - name: site
+              path: www-git/_site
+          caches:
+            - path: .stack
+            - path: www-git/.stack-work
+          run:
+            path: sh
+            args:
+              - -cex
+              - |
+                cd www-git
+
+                stack --no-terminal build
+                stack --no-terminal exec hakyll build
+
+    - task: deploy
+      params:
+        SSH_PRIVATE_KEY: {{ssh-private-key}}
+      config:
+        <<: *DEFAULT_TASK_CONFIG
+        inputs:
+          - name: cv
+          - name: site
+        run:
+          path: sh
+          args:
+            - -ce
+            - |
+              echo "${SSH_PRIVATE_KEY}" > sshkey
+              chmod 700 sshkey
+
+              set -x
+
+              mv cv/cv.pdf site/cv.pdf
+              rsync -e 'ssh -o StrictHostKeyChecking=no -i sshkey' -avzc --delete site/ concourseci@barrucadu.co.uk:/srv/http/barrucadu.co.uk/www/
