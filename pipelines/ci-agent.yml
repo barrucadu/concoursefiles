@@ -5,40 +5,37 @@ resources:
     branch: master
     uri: https://github.com/barrucadu/concoursefiles.git
 
+- name: ci-agent-image
+  type: docker-image
+  source:
+    repository: ci-registry:5000/ci-agent
+    insecure_registries: ["ci-registry:5000"]
+
 jobs:
 - name: ci-agent
   serial: true
   plan:
     - get: concoursefiles-git
 
-    - task: build-and-push
-      privileged: true
+    - task: tag
       config:
         platform: linux
         image_resource:
           type: docker-image
           source:
-            repository: amidos/dcind
-        inputs:
-          - name: concoursefiles-git
+            repository: alpine
+        outputs:
+          - name: tag
         run:
           path: sh
           args:
-            - -ce
+            - -cex
             - |
-              REPO="ci-registry:5000"
-              TAG="$(date +'%s')"
+              date +'%s' > tag/timestamp
 
-              source /docker-lib.sh
-
-              cd concoursefiles-git
-
-              # $1 is a list of insecure repositories
-              start_docker "$REPO"
-
-              set -x
-
-              docker build -f Dockerfile.ci-agent -t "$REPO/ci-agent:$TAG" .
-              docker tag "$REPO/ci-agent:$TAG" "$REPO/ci-agent:latest"
-              docker push "$REPO/ci-agent:$TAG"
-              docker push "$REPO/ci-agent:latest"
+    - put: ci-agent-image
+      params:
+        build: concoursefiles-git/
+        dockerfile: concoursefiles-git/Dockerfile.ci-agent
+        tag_file: tag/timestamp
+        tag_as_latest: true
