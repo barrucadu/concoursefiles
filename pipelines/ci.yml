@@ -41,6 +41,12 @@ resources:
     repository: ci-registry:5000/ci-agent
     insecure_registries: ["ci-registry:5000"]
 
+- name: ci-resource-rsync-image
+  type: docker-image
+  source:
+    repository: ci-registry:5000/ci-resource-rsync
+    insecure_registries: ["ci-registry:5000"]
+
 jobs:
 - name: ci-base
   serial: true
@@ -63,3 +69,15 @@ jobs:
       params:
         <<: *x-params-put
         dockerfile: concoursefiles-git/Dockerfile.ci-agent
+- name: ci-resource-rsync
+  serial: true
+  plan:
+    - aggregate:
+        - get: concoursefiles-git
+        - get: ci-base-image
+          trigger: true
+    - <<: *x-task-tag-time
+    - put: ci-resource-rsync-image
+      params:
+        <<: *x-params-put
+        dockerfile: concoursefiles-git/Dockerfile.ci-resource-rsync

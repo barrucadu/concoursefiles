@@ -1,0 +1,8 @@
+FROM ci-registry:5000/ci-base:latest
+
+RUN nix-env -iA nixpkgs.bash \
+                nixpkgs.openssh \
+                nixpkgs.python3 \
+                nixpkgs.rsync
+
+COPY ./resources/rsync/* /opt/resource/
