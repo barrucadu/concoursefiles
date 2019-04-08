@@ -3,7 +3,26 @@ ci-resource-rsync
 
 Based on https://github.com/OkCupid/concourse-resource-rsync
 
-Original licence:
+
+Configuration
+-------------
+
+Source configuration:
+
+- server: server to connect to [default: barrucadu.co.uk]
+- port: SSH server port [default: 22]
+- user: user to connect as [default: concourseci]
+- remote_dir: remote directory
+- private_key: SSH private key
+
+Put parameters:
+
+- path: local directory
+- rsync_args: extra rsync arguments
+
+
+Original licence
+----------------
 
 The MIT License (Expat)
 
