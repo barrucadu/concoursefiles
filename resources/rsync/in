@@ -8,8 +8,8 @@ import json
 local_dir = sys.argv[1]
 
 script_input = json.loads(sys.stdin.read())
-server = script_input['source']['server']
-user = script_input['source']['user']
+server = script_input['source'].get('server', 'barrucadu.co.uk')
+user = script_input['source'].get('user', 'concourseci')
 remote_dir = script_input['source']['remote_dir']
 private_key = script_input['source']['private_key']
 port = script_input['source'].get('port', 22)

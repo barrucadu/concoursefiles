@@ -26,7 +26,6 @@ resources:
 - name: concoursefiles-git
   type: git
   source:
-    branch: master
     uri: https://github.com/barrucadu/concoursefiles.git
 
 - name: ci-base-image

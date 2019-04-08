@@ -17,35 +17,28 @@ resources:
 - name: cv-git
   type: git
   source:
-    branch: master
     uri: https://github.com/barrucadu/cv.git
 
 - name: memo-git
   type: git
   source:
-    branch: master
     uri: https://github.com/barrucadu/memo.barrucadu.co.uk.git
 
 - name: www-git
   type: git
   source:
-    branch: master
     uri: https://github.com/barrucadu/barrucadu.co.uk.git
 
 - name: memo-rsync
   type: rsync-resource
   source:
-    server: barrucadu.co.uk
     remote_dir: /srv/http/barrucadu.co.uk/memo
-    user: concourseci
     private_key: {{ssh-private-key}}
 
 - name: www-rsync
   type: rsync-resource
   source:
-    server: barrucadu.co.uk
     remote_dir: /srv/http/barrucadu.co.uk/www
-    user: concourseci
     private_key: {{ssh-private-key}}
 
 jobs:

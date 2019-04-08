@@ -17,29 +17,23 @@ resources:
 - name: docs-git
   type: git
   source:
-    branch: master
     uri: https://github.com/uzbl/uzbl.git
 
 - name: website-git
   type: git
   source:
-    branch: master
     uri: https://github.com/uzbl/uzbl-website.git
 
 - name: docs-rsync
   type: rsync-resource
   source:
-    server: barrucadu.co.uk
     remote_dir: /srv/http/uzbl.org/uzbl
-    user: concourseci
     private_key: {{ssh-private-key}}
 
 - name: website-rsync
   type: rsync-resource
   source:
-    server: barrucadu.co.uk
     remote_dir: /srv/http/uzbl.org/www
-    user: concourseci
     private_key: {{ssh-private-key}}
 
 jobs:
