@@ -1,0 +1,65 @@
+# produce a file containing the current timestamp
+x-task-tag-time: &x-task-tag-time
+  task: tag
+  config:
+    platform: linux
+    image_resource:
+      type: docker-image
+      source:
+        repository: alpine
+    outputs:
+      - name: tag
+    run:
+      path: sh
+      args:
+        - -cex
+        - |
+          date +'%s' > tag/timestamp
+
+# common params for building a docker image
+x-params-put: &x-params-put
+  build: concoursefiles-git/
+  tag_file: tag/timestamp
+  tag_as_latest: true
+
+resources:
+- name: concoursefiles-git
+  type: git
+  source:
+    branch: master
+    uri: https://github.com/barrucadu/concoursefiles.git
+
+- name: ci-base-image
+  type: docker-image
+  source:
+    repository: ci-registry:5000/ci-base
+    insecure_registries: ["ci-registry:5000"]
+
+- name: ci-agent-image
+  type: docker-image
+  source:
+    repository: ci-registry:5000/ci-agent
+    insecure_registries: ["ci-registry:5000"]
+
+jobs:
+- name: ci-base
+  serial: true
+  plan:
+    - get: concoursefiles-git
+    - <<: *x-task-tag-time
+    - put: ci-base-image
+      params:
+        <<: *x-params-put
+        dockerfile: concoursefiles-git/Dockerfile.ci-base
+- name: ci-agent
+  serial: true
+  plan:
+    - aggregate:
+        - get: concoursefiles-git
+        - get: ci-base-image
+          trigger: true
+    - <<: *x-task-tag-time
+    - put: ci-agent-image
+      params:
+        <<: *x-params-put
+        dockerfile: concoursefiles-git/Dockerfile.ci-agent
