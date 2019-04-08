@@ -1,6 +1,4 @@
 FROM ci-registry:5000/ci-base:latest
 
-RUN nix-env -iA nixpkgs.openssh \
-                nixpkgs.rsync \
-                nixpkgs.stack \
+RUN nix-env -iA nixpkgs.stack \
                 nixpkgs.texlive.combined.scheme-full

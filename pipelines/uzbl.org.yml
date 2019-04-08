@@ -6,22 +6,15 @@ x-task-config: &x-task-config
       repository: ci-registry:5000/ci-agent
       insecure_registries: ["ci-registry:5000"]
 
-x-task-deploy: &x-task-deploy
-  task: deploy
-  params:
-    SSH_PRIVATE_KEY: {{ssh-private-key}}
-  config:
-    <<: *x-task-config
-    inputs:
-      - name: site
-    run:
-      path: sh
-      args:
-        - -ce
-        - |
+resource_types:
+- name: rsync-resource
+  type: docker-image
+  source:
+      repository: ci-registry:5000/ci-resource-rsync
+      insecure_registries: ["ci-registry:5000"]
 
 resources:
-- name: uzbl-git
+- name: docs-git
   type: git
   source:
     branch: master
@@ -33,53 +26,38 @@ resources:
     branch: master
     uri: https://github.com/uzbl/uzbl-website.git
 
+- name: docs-rsync
+  type: rsync-resource
+  source:
+    server: barrucadu.co.uk
+    remote_dir: /srv/http/uzbl.org/uzbl
+    user: concourseci
+    private_key: {{ssh-private-key}}
+
+- name: website-rsync
+  type: rsync-resource
+  source:
+    server: barrucadu.co.uk
+    remote_dir: /srv/http/uzbl.org/www
+    user: concourseci
+    private_key: {{ssh-private-key}}
+
 jobs:
 - name: website
   serial: true
   plan:
     - get: website-git
       trigger: true
-
-    - task: build
+    - put: website-rsync
       params:
-        SSH_PRIVATE_KEY: {{ssh-private-key}}
-      config:
-        <<: *x-task-config
-        inputs:
-          - name: website-git
-        run:
-          path: sh
-          args:
-            - -ce
-            - |
-              echo "${SSH_PRIVATE_KEY}" > sshkey
-              chmod 700 sshkey
-
-              set -x
-
-              rsync -e 'ssh -o StrictHostKeyChecking=no -i sshkey' -avzc --delete --exclude=.git/ website-git/ concourseci@barrucadu.co.uk:/srv/http/uzbl.org/www/
-
+        path: website-git
+        rsync_args: ["--delete", "--exclude=.git/"]
 - name: docs
   serial: true
   plan:
-    - get: uzbl-git
+    - get: docs-git
       trigger: true
-
-    - task: build
+    - put: docs-rsync
       params:
-        SSH_PRIVATE_KEY: {{ssh-private-key}}
-      config:
-        <<: *x-task-config
-        inputs:
-          - name: uzbl-git
-        run:
-          path: sh
-          args:
-            - -ce
-            - |
-              echo "${SSH_PRIVATE_KEY}" > sshkey
-              chmod 700 sshkey
-
-              set -x
-
-              rsync -e 'ssh -o StrictHostKeyChecking=no -i sshkey' -avzc --delete --exclude=.git/ uzbl-git/ concourseci@barrucadu.co.uk:/srv/http/uzbl.org/uzbl/
+        path: docs-git
+        rsync_args: ["--delete", "--exclude=.git/"]
