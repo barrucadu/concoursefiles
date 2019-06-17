@@ -1,0 +1,68 @@
+x-task-config: &x-task-config
+  platform: linux
+  image_resource:
+    type: docker-image
+    source:
+      repository: ci-registry:5000/ci-agent
+      insecure_registries: ["ci-registry:5000"]
+
+resource_types:
+- name: rsync-resource
+  type: docker-image
+  source:
+      repository: ci-registry:5000/ci-resource-rsync
+      insecure_registries: ["ci-registry:5000"]
+
+resources:
+- name: bible-git
+  type: git
+  source:
+    uri: https://github.com/barrucadu/bible.git
+
+- name: bible-rsync
+  type: rsync-resource
+  source:
+    remote_dir: /srv/http/barrucadu.co.uk/misc/artefacts/bible
+    private_key: {{ssh-private-key}}
+
+jobs:
+- name: bible
+  serial: true
+  plan:
+    - get: bible-git
+      trigger: true
+
+    - task: build
+      config:
+        <<: *x-task-config
+        params:
+          SSH_PRIVATE_KEY: {{ssh-private-key}}
+        inputs:
+          - name: bible-git
+        outputs:
+          - name: out
+        run:
+          path: sh
+          args:
+            - -ce
+            - |
+              echo "$SSH_PRIVATE_KEY" > ssh-private-key
+              chmod 600 ssh-private-key
+
+              set -x
+
+              nix-env --install openssh
+
+              scp -i ssh-private-key -o 'StrictHostKeyChecking no' -r concourseci@barrucadu.co.uk:~/fonts .
+              sed -i "s:~/s/fonts/equity/:$(pwd)/fonts/equity/:" bible-git/main.tex
+
+              mkdir out/bible
+
+              cd bible-git
+              latexmk -pdf -xelatex main.tex
+              mv main.pdf ../out/bible/master.pdf
+
+    - put: bible-rsync
+      params:
+        path: out/bible
+        rsync_args: ["--delete"]
