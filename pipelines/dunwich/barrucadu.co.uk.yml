@@ -59,23 +59,22 @@ jobs:
           - name: www-git
         outputs:
           - name: site
-        caches:
-          - path: .stack
-          - path: www-git/.stack-work
         run:
           path: sh
           args:
             - -cex
             - |
-              cd cv-git
+              cd www-git
+
+              virtualenv venv
+              source venv/bin/activate
+              pip install -r requirements.txt
+
+              ./build --out=../site/www
+
+              cd ../cv-git
               latexmk -pdf -xelatex cv-full.tex
-
-              cd ../www-git
-              stack --no-terminal build
-              stack --no-terminal exec hakyll build
-
-              mv _site ../site/www
-              mv ../cv-git/cv-full.pdf ../site/www/cv.pdf
+              mv cv-full.pdf ../site/www/cv.pdf
 
     - put: www-rsync
       params:
