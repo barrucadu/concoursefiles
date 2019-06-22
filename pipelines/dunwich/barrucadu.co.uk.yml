@@ -95,19 +95,18 @@ jobs:
           - name: memo-git
         outputs:
           - name: site
-        caches:
-          - path: .stack
-          - path: memo-git/.stack-work
         run:
           path: sh
           args:
             - -cex
             - |
               cd memo-git
-              stack --no-terminal build
-              stack --no-terminal exec hakyll build
 
-              mv _site ../site/memo
+              virtualenv venv
+              source venv/bin/activate
+              pip install -r requirements.txt
+
+              PATH=.:$PATH ./build --out=../site/memo
 
     - put: memo-rsync
       params:
@@ -122,4 +121,14 @@ jobs:
         inputs:
           - name: memo-git
         run:
-          path: memo-git/post-pleroma-status
+          path: sh
+          args:
+            - -cex
+            - |
+              cd memo-git
+
+              virtualenv venv
+              source venv/bin/activate
+              pip install -r requirements.txt
+
+              ./post-pleroma-status
