@@ -1,6 +1,7 @@
 FROM ci-registry:5000/ci-base:latest
 
 RUN nix-env -iA \
+        nixpkgs.graphviz \
         nixpkgs.haskellPackages.pandoc \
         nixpkgs.haskellPackages.pandoc-sidenote \
         nixpkgs.python3Packages.virtualenv \
