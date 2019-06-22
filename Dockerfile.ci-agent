@@ -3,5 +3,6 @@ FROM ci-registry:5000/ci-base:latest
 RUN nix-env -iA \
         nixpkgs.haskellPackages.pandoc \
         nixpkgs.haskellPackages.pandoc-sidenote \
+        nixpkgs.python3Packages.virtualenv \
         nixpkgs.stack \
         nixpkgs.texlive.combined.scheme-full
