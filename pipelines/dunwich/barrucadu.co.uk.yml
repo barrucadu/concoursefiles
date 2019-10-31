@@ -95,12 +95,11 @@ jobs:
         outputs:
           - name: site
         run:
+          dir: memo-git
           path: sh
           args:
             - -cex
             - |
-              cd memo-git
-
               virtualenv venv
               source venv/bin/activate
               pip install -r requirements.txt
@@ -120,12 +119,11 @@ jobs:
         inputs:
           - name: memo-git
         run:
+          dir: memo-git
           path: sh
           args:
             - -cex
             - |
-              cd memo-git
-
               virtualenv venv
               source venv/bin/activate
               pip install -r requirements.txt
