@@ -1,4 +1,6 @@
-#! /bin/sh
+#! /usr/bin/env bash
+
+set -e
 
 HOST="$1"
 
@@ -12,7 +14,7 @@ fi
 
 function set_pipeline () {
   yml="$1"
-  name="$(echo "$(basename $yml)" | sed 's:.yml$::')"
+  name="$(basename "$yml" | sed 's:.yml$::')"
   if [[ ! -e "$yml" ]]; then
     echo "Pipeline $yml is missing" >&2
   else
@@ -32,7 +34,7 @@ function initialise_concourse () {
 initialise_concourse
 
 if [[ -d "$PIPELINES" ]]; then
-  cd "pipelines/$HOST"
+  cd "$PIPELINES"
 
   for pipeline in *.yml; do
     set_pipeline "$pipeline"

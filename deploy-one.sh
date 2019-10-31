@@ -1,4 +1,6 @@
-#! /bin/sh
+#! /usr/bin/env bash
+
+set -e
 
 HOST="$1"
 PIPELINE="$2"
@@ -12,7 +14,7 @@ if [[ ! -e "$SECRETS" ]]; then
 fi
 
 yml="${PIPELINES}/${PIPELINE}.yml"
-name="$(echo "$(basename $yml)" | sed 's:.yml$::')"
+name="${2//.yml/}"
 
 if [[ -e "$yml" ]]; then
   fly login -t "$HOST" -c "https://ci.$HOST.barrucadu.co.uk"
