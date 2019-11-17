@@ -2,6 +2,7 @@ FROM ci-registry:5000/ci-base:latest
 
 RUN nix-env -iA \
         nixpkgs.git \
+        nixpkgs.gnum4 \
         nixpkgs.graphviz \
         nixpkgs.haskellPackages.pandoc \
         nixpkgs.haskellPackages.pandoc-sidenote \
