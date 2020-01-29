@@ -48,4 +48,8 @@ jobs:
               set -x
 
               nix-env --install openssh
-              ssh -i ssh-private-key -o 'StrictHostKeyChecking no' concourseci@barrucadu.co.uk sudo systemctl restart bookdb
+              ssh -i ssh-private-key -o 'StrictHostKeyChecking no' concourseci@barrucadu.co.uk <<EOF
+              set -ex
+              docker pull ci-registry:5000/bookdb:latest
+              sudo systemctl restart bookdb
+              EOF
